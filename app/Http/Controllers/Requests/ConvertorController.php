@@ -39,6 +39,7 @@ class ConvertorController extends Controller
                 'message' => 'Message Broker Error!'
             ], 502);
         } catch (Throwable $throwable) {
+            dd($throwable);
             return response()->json([
                 'status' => 'error',
                 'message' => 'Server Error!'

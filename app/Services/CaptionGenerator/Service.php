@@ -26,7 +26,7 @@ class Service
             ->withBody( $img, 'image/jpeg')
             ->post(HuggingFaceEndPoints::CAPTIONING);
         if ($res->successful())
-            return $res->json('generated_text');
+            return $res->json()[0]['generated_text'];
 
         throw new CaptionGeneratorException();
     }

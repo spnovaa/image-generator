@@ -22,6 +22,7 @@ class Repo
             $history->save();
             return $history;
         } catch (Throwable $throwable) {
+            dd($throwable);
             throw new GeneralDatabaseException();
         }
     }

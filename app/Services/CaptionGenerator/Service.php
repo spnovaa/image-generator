@@ -13,17 +13,17 @@ use Symfony\Component\HttpFoundation\File\File;
 class Service
 {
     /**
-     * @param File $img
+     * @param string $img
      * @return string
      * @throws CaptionGeneratorException
      * @throws ConnectionException
      */
-    public function generate(File $img): string
+    public function generate(string $img): string
     {
         $res = Http::timeout(30)
             ->withOptions(['verify' => false])
             ->withToken(env('HUGGING_FACE_TOKEN'))
-            ->withBody( $img->openFile('r'), 'image/jpeg')
+            ->withBody( $img, 'image/jpeg')
             ->post(HuggingFaceEndPoints::CAPTIONING);
         if ($res->successful())
             return $res->json('generated_text');

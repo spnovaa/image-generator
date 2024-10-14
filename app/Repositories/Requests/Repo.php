@@ -82,7 +82,7 @@ class Repo
     public function getReadyRecords(): Collection
     {
         try {
-        return RequestHistory::where('status', Status::PENDING)->get();
+        return RequestHistory::where('status', Status::READY)->get();
         } catch (Throwable) {
             throw new GeneralDatabaseException();
         }

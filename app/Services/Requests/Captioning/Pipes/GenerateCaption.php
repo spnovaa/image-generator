@@ -27,8 +27,8 @@ class GenerateCaption implements Pipe
     public function handle($content, Closure $next)
     {
         $content->fill([
-            'R_Caption' => $this->service->generate($content['img']),
-            'R_Status' => Status::READY
+            'caption' => $this->service->generate($content['img']),
+            'status' => Status::READY
         ]);
 
         return $next($content);

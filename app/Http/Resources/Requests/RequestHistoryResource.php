@@ -11,7 +11,7 @@ class RequestHistoryResource extends JsonResource
     public function toArray(Request $request): array
     {
         try {
-            if (!$this->R_Id)
+            if (!$this->id)
                 return [];
         } catch (Throwable) {
             return [];
@@ -19,10 +19,10 @@ class RequestHistoryResource extends JsonResource
 
         return [
             'id' => $this->id,
-            'email' => $this->R_Email,
-            'status' => $this->R_Status,
-            'caption' => $this->R_Caption,
-            'url' => $this->R_URL
+            'email' => $this->email,
+            'status' => $this->status,
+            'caption' => $this->caption,
+            'url' => $this->url
         ];
     }
 }

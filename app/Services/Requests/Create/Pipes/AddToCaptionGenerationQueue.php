@@ -24,7 +24,7 @@ class AddToCaptionGenerationQueue implements Pipe
     public function handle($content, Closure $next)
     {
         try {
-            dispatch((new GenerateImageCaption($content->R_Id)))->onQueue('GenerateImageCaption');
+            dispatch((new GenerateImageCaption($content->id)))->onQueue('GenerateImageCaption');
 
             return $next($content);
         } catch (Throwable) {

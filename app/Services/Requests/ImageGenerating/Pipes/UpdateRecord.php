@@ -26,7 +26,7 @@ class UpdateRecord implements Pipe
     {
         // remove overloaded attribute before db query execution
         unset($content['img']);
-        $content['R_Status'] = Status::DONE;
+        $content['status'] = Status::DONE;
 
         $this->service->update($content);
 

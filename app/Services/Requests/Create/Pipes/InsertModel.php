@@ -28,7 +28,7 @@ class InsertModel implements Pipe
 
         $content = $this->repo->create($content);
 
-        $content['R_FileName'] = $content['R_Id'] . '.'. $temp->getClientOriginalExtension();
+        $content['file_name'] = $content['id'] . '.'. $temp->getClientOriginalExtension();
         $this->repo->update($content);
 
         $content['img'] = $temp;

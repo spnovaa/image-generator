@@ -87,8 +87,8 @@ class ConvertorController extends Controller
     private function requestToModel(Request $request)
     {
         $model = new RequestHistory([
-            'R_Email' => $request->email,
-            'R_Status' => Status::PENDING
+            'email' => $request->email,
+            'status' => Status::PENDING
         ]);
         $model['img'] = $request->img;
 

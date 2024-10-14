@@ -16,7 +16,7 @@ class SendMail implements Pipe
 
     public function handle($content, Closure $next)
     {
-        $this->service->send($content['R_Email'], $content['R_URL']);
+        $this->service->send($content['email'], $content['url']);
         return $next($content);
     }
 }

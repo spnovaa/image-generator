@@ -15,7 +15,7 @@ class DownloadImage implements Pipe
 
     public function handle($content, Closure $next)
     {
-        $content['img'] = $this->service->download($content->R_FileName);
+        $content['img'] = $this->service->download($content->file_name);
 
         return $next($content);
     }

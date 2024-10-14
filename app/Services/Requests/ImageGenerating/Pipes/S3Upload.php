@@ -29,14 +29,14 @@ class S3Upload implements Pipe
          * @var $img File
          */
         $img = $content['img'];
-        $res = $img->move('out', $content->R_Id);
+        $res = $img->move('out', $content->id);
         $res = $this->service->upload(
             $res->getRealPath(),
             env('AWS_BUCKET_OUT'),
-            $content->R_FileName
+            $content->file_name
         );
 
-        $content['R_URL'] = $res->toArray()['ObjectURL'];
+        $content['url'] = $res->toArray()['ObjectURL'];
         return $next($content);
     }
 }

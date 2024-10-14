@@ -25,7 +25,7 @@ class GenerateImage implements Pipe
      */
     public function handle($content, Closure $next)
     {
-        $content['img'] = $this->service->generate($content['R_Caption']);
+        $content['img'] = $this->service->generate($content['caption']);
 
         return $next($content);
     }

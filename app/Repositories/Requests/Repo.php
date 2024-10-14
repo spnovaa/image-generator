@@ -35,7 +35,7 @@ class Repo
     public function update(RequestHistory $history): RequestHistory
     {
         try {
-            if ($history->getOriginal('R_Id'))
+            if ($history->getOriginal('id'))
                 $history->save();
             else
                 throw new InvalidArgumentException('SERVER ERROR!');
@@ -82,7 +82,7 @@ class Repo
     public function getReadyRecords(): Collection
     {
         try {
-        return RequestHistory::where('R_Status', Status::PENDING)->get();
+        return RequestHistory::where('status', Status::PENDING)->get();
         } catch (Throwable) {
             throw new GeneralDatabaseException();
         }

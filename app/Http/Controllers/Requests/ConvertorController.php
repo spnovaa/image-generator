@@ -38,11 +38,11 @@ class ConvertorController extends Controller
                 'status' => 'error',
                 'message' => 'Message Broker Error!'
             ], 502);
-        } catch (Throwable) {
+        } catch (Throwable $throwable) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Server Error!'
-            ]);
+            ], 500);
         }
     }
 
@@ -61,18 +61,33 @@ class ConvertorController extends Controller
                 'status' => 'error',
                 'message' => 'Message Broker Error!'
             ], 502);
+        } catch (Throwable $throwable) {
+            dd($throwable);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Server Error!'
+            ], 500);
+        }
+    }
+
+    public function index()
+    {
+        try {
+            return response()->json(
+                RequestHistoryResource::collection($this->service->index())
+            );
         } catch (Throwable) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Server Error!'
-            ]);
+            ], 500);
         }
     }
 
     private function requestToModel(Request $request)
     {
         $model = new RequestHistory([
-            'R_Caption' => $request->caption,
+            'R_Email' => $request->email,
             'R_Status' => Status::PENDING
         ]);
         $model['img'] = $request->img;

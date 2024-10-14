@@ -33,10 +33,10 @@ readonly class Service
 
     /**
      * @param int $id
-     * @return RequestHistory
+     * @return RequestHistory|null
      * @throws GeneralDatabaseException
      */
-    public function show(int $id): RequestHistory
+    public function show(int $id): ?RequestHistory
     {
         return $this->rs->show($id);
     }

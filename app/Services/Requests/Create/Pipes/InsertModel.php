@@ -23,10 +23,15 @@ class InsertModel implements Pipe
      */
     public function handle($content, Closure $next)
     {
+        $temp = $content['img'];
+        unset($content['img']);
+
         $content = $this->repo->create($content);
-        $content['R_FileName'] = $content['R_Id'] . '.'. $content['img']->getClientOriginalExtension();
+
+        $content['R_FileName'] = $content['R_Id'] . '.'. $temp->getClientOriginalExtension();
         $this->repo->update($content);
 
+        $content['img'] = $temp;
         return $next($content);
     }
 }

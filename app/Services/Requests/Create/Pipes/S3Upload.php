@@ -28,9 +28,9 @@ readonly class S3Upload implements Pipe
          * @var $img UploadedFile
          */
         $img = $content['img'];
-
+        $a = $img->move('in', $content->R_FileName);
         $res = $this->service->upload(
-            $img->getRealPath(),
+            $a->getRealPath(),
             env('AWS_BUCKET'),
             $content->R_FileName
         );

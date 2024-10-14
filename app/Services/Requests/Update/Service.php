@@ -4,12 +4,13 @@ namespace App\Services\Requests\Update;
 
 use App\Exceptions\GeneralDatabaseException;
 use App\Models\RequestHistory;
+use App\Repositories\Requests\Repo;
 use App\Services\Requests\Service as RequestService;
 
 readonly class Service
 {
     public function __construct(
-        private RequestService $service
+        private Repo $repo
     )
     {
     }
@@ -28,6 +29,6 @@ readonly class Service
     public function update(RequestHistory $history)
     {
         // no need to pipeline, for now.
-        return $this->service->update($history);
+        return $this->repo->update($history);
     }
 }

@@ -12,16 +12,17 @@ class GenerateImageCaption implements ShouldQueue
 {
     use Queueable;
 
+    private CaptioningService $cs;
+    private HistoryService $hs;
     /**
      * Create a new job instance.
      */
     public function __construct(
         private int               $history_id,
-        private HistoryService    $hs,
-        private CaptioningService $cs
     )
     {
-        //
+        $this->hs = app(HistoryService::class);
+        $this->cs = app(CaptioningService::class);
     }
 
     /**
@@ -29,7 +30,11 @@ class GenerateImageCaption implements ShouldQueue
      */
     public function handle(): void
     {
-        $history = $this->hs->show($this->history_id);
-        $this->cs->create($history);
+        try {
+            $history = $this->hs->show($this->history_id);
+            $this->cs->create($history);
+        }catch (\Throwable $throwable){
+            logger($throwable->getMessage());
+        }
     }
 }

@@ -7,6 +7,7 @@ use App\Services\S3Object\Service;
 use Closure;
 use Exception;
 use Illuminate\Http\File;
+use Illuminate\Support\Facades\Storage;
 
 class S3Upload implements Pipe
 {
@@ -28,8 +29,9 @@ class S3Upload implements Pipe
         /**
          * @var $img File
          */
-        $img = $content['img'];
-        $res = $img->move('out', $content->id);
+        Storage::put($content->file_name, $content['img']);
+        $path = Storage::path($content->file_name);
+        $res = new File($path);
         $res = $this->service->upload(
             $res->getRealPath(),
             env('AWS_BUCKET_OUT'),

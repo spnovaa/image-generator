@@ -1,5 +1,8 @@
 {
     "laravel": {
         "phpVersion": "8.2"
-    }
+    },
+    "cron": [
+        "* * * * * cd $ROOT && php artisan app:inquire >> /dev/null 2>&1"
+    ]
 }

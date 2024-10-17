@@ -2,6 +2,7 @@
 
 namespace App\Services\Requests\Captioning;
 
+use App\Enums\Requests\Status;
 use App\Models\RequestHistory;
 use App\Services\Requests\Captioning\Pipes\DownloadImage;
 use App\Services\Requests\Captioning\Pipes\GenerateCaption;
@@ -20,6 +21,11 @@ class Service
     ];
 
 
+    /**
+     * @param RequestHistory $request
+     * @return int
+     * @throws Throwable
+     */
     public function create(RequestHistory $request): int
     {
         try {
@@ -35,6 +41,7 @@ class Service
 
         } catch (Throwable $exception) {
             DB::rollBack();
+            $request->update(['status' => Status::FAILURE]);
             throw $exception;
         }
     }

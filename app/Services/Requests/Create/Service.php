@@ -2,14 +2,17 @@
 
 namespace App\Services\Requests\Create;
 
+use App\Enums\Requests\Status;
 use App\Exceptions\GeneralDatabaseException;
 use App\Exceptions\RabbitMQException;
 use App\Models\RequestHistory;
 use App\Services\Requests\Create\Pipes\AddToCaptionGenerationQueue;
 use App\Services\Requests\Create\Pipes\InsertModel;
 use App\Services\Requests\Create\Pipes\S3Upload;
+use Exception;
 use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class Service
 {
@@ -25,6 +28,7 @@ class Service
      * @return int
      * @throws RabbitMQException
      * @throws GeneralDatabaseException
+     * @throws Exception
      */
     public function create(RequestHistory $request): int
     {
@@ -43,9 +47,15 @@ class Service
 
             DB::rollBack();
             return -1;
-        } catch (RabbitMQException|GeneralDatabaseException $exception) {
+        } catch (GeneralDatabaseException $exception) {
             DB::rollBack();
             throw $exception;
+        } catch (RabbitMQException $exception) {
+            $request->update(['status' => Status::FAILURE]);
+            throw $exception;
+        } catch (Throwable) {
+            $request->update(['status' => Status::FAILURE]);
+            throw new Exception('Server Error!');
         }
     }
 }

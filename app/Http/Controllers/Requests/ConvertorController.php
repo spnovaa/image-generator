@@ -2,96 +2,59 @@
 
 namespace App\Http\Controllers\Requests;
 
-use App\Enums\Requests\Status;
-use App\Exceptions\GeneralDatabaseException;
-use App\Exceptions\RabbitMQException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreConvertRequest;
 use App\Http\Resources\Requests\RequestHistoryResource;
-use App\Models\RequestHistory;
-use App\Services\Requests\Service;
+use App\Services\Requests\Service as RequestService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Throwable;
+use Symfony\Component\HttpFoundation\Response as HttpStatus;
 
-class ConvertorController extends Controller
+/**
+ * HTTP entry point for the conversion-request resource.
+ *
+ * Validation is delegated to {@see StoreConvertRequest}, error mapping
+ * to the global exception handler (see {@see \bootstrap\app.php}), and
+ * persistence + side-effects to {@see RequestService}.
+ */
+final class ConvertorController extends Controller
 {
     public function __construct(
-        private Service $service
-    )
+        private readonly RequestService $service,
+    ) {}
+
+    public function store(StoreConvertRequest $request): JsonResponse
     {
+        $history = $this->service->create($request->toData());
+
+        return response()->json(
+            ['status' => 'success', 'id' => $history->id],
+            HttpStatus::HTTP_CREATED,
+        );
     }
 
-    public function store(Request $request)
+    public function show(int $id): JsonResponse
     {
-        try {
-            $id = $this->service->create($this->requestToModel($request));
-            return response()->json([
-                'status' => 'success',
-                'id' => $id
-            ]);
-        } catch (GeneralDatabaseException) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Database Error!'
-            ], 530);
-        } catch (RabbitMQException) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Message Broker Error!'
-            ], 502);
-        } catch (Throwable $throwable) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Server Error!'
-            ], 500);
-        }
-    }
+        $history = $this->service->show($id);
 
-    public function show(int $id)
-    {
-        try {
-            $model = $this->service->show($id);
-            return response()->json(new RequestHistoryResource($model));
-        } catch (GeneralDatabaseException) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Database Error!'
-            ], 530);
-        } catch (RabbitMQException) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Message Broker Error!'
-            ], 502);
-        } catch (Throwable $throwable) {
-            dd($throwable);
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Server Error!'
-            ], 500);
-        }
-    }
-
-    public function index()
-    {
-        try {
+        if ($history === null) {
             return response()->json(
-                RequestHistoryResource::collection($this->service->index())
+                ['status' => 'error', 'message' => 'Not found.'],
+                HttpStatus::HTTP_NOT_FOUND,
             );
-        } catch (Throwable) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Server Error!'
-            ], 500);
         }
+
+        return response()->json(new RequestHistoryResource($history));
     }
 
-    private function requestToModel(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $model = new RequestHistory([
-            'email' => $request->email,
-            'status' => Status::PENDING
-        ]);
-        $model['img'] = $request->img;
+        $perPage = (int) $request->integer('per_page', 15);
 
-        return $model;
+        return response()->json(
+            RequestHistoryResource::collection(
+                $this->service->paginate($perPage),
+            ),
+        );
     }
 }

@@ -2,27 +2,26 @@
 
 namespace App\Http\Resources\Requests;
 
+use App\Models\RequestHistory;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Throwable;
 
-class RequestHistoryResource extends JsonResource
+/**
+ * @mixin RequestHistory
+ */
+final class RequestHistoryResource extends JsonResource
 {
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(Request $request): array
     {
-        try {
-            if (!$this->id)
-                return [];
-        } catch (Throwable) {
-            return [];
-        }
-
         return [
-            'id' => $this->id,
-            'email' => $this->email,
-            'status' => $this->status,
+            'id'      => $this->id,
+            'email'   => $this->email,
+            'status'  => $this->status?->value,
             'caption' => $this->caption,
-            'url' => $this->url
+            'url'     => $this->url,
         ];
     }
 }

@@ -2,12 +2,13 @@
 
 namespace App\Exceptions;
 
-use Exception;
+use RuntimeException;
+use Throwable;
 
-class ImageGeneratorException extends Exception
+class ImageGeneratorException extends RuntimeException
 {
-    public function __construct()
+    public function __construct(string $message = 'Failed to generate the image.', ?Throwable $previous = null)
     {
-        parent::__construct('Failed To Generate The Image');
+        parent::__construct($message, 0, $previous);
     }
 }

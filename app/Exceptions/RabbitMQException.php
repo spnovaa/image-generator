@@ -2,12 +2,13 @@
 
 namespace App\Exceptions;
 
-use Exception;
+use RuntimeException;
+use Throwable;
 
-class RabbitMQException extends Exception
+class RabbitMQException extends RuntimeException
 {
-    public function __construct()
+    public function __construct(string $message = 'Message broker error.', ?Throwable $previous = null)
     {
-        parent::__construct('Message Broker Error!');
+        parent::__construct($message, 0, $previous);
     }
 }

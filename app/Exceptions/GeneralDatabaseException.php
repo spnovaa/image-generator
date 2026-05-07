@@ -2,12 +2,13 @@
 
 namespace App\Exceptions;
 
-use Exception;
+use RuntimeException;
+use Throwable;
 
-class GeneralDatabaseException extends Exception
+class GeneralDatabaseException extends RuntimeException
 {
-    public function __construct()
+    public function __construct(string $message = 'Database error.', ?Throwable $previous = null)
     {
-        parent::__construct('Database Error!');
+        parent::__construct($message, 0, $previous);
     }
 }

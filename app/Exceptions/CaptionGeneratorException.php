@@ -2,14 +2,13 @@
 
 namespace App\Exceptions;
 
-use Exception;
+use RuntimeException;
+use Throwable;
 
-class CaptionGeneratorException extends Exception
+class CaptionGeneratorException extends RuntimeException
 {
-    public function __construct()
+    public function __construct(string $message = 'Failed to generate the caption.', ?Throwable $previous = null)
     {
-        parent::__construct(
-            'Failed To Generate The Caption!'
-        );
+        parent::__construct($message, 0, $previous);
     }
 }

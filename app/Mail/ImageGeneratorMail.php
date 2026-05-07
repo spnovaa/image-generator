@@ -1,56 +1,42 @@
 <?php
 
 namespace App\Mail;
+
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Attachment;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Mail\Mailables\Address;
 
-class ImageGeneratorMail extends Mailable
+/**
+ * Notification e-mail informing the user that their generated image
+ * is available at the URL contained in {@see $bodyHtml}.
+ */
+final class ImageGeneratorMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable;
+    use SerializesModels;
 
-    public $data;
+    public function __construct(
+        public readonly string $bodyHtml,
+    ) {}
 
-    /**
-     * Create a new message instance.
-     */
-    public function __construct( $data )
-    {
-        $this->data = $data;
-    }
-
-    /**
-     * Get the message envelope.
-     */
     public function envelope(): Envelope
     {
+        $cfg = config('image_generator.mail');
+
         return new Envelope(
-            from: new Address('mm.rahmati94@gmail.com', 'Image Generator'),
-            subject: 'Image Generator Response',
+            from:    new Address($cfg['from_address'], $cfg['from_name']),
+            subject: $cfg['subject'],
         );
     }
 
-    /**
-     * Get the message content definition.
-     */
     public function content(): Content
     {
         return new Content(
             view: 'image-mail',
+            with: ['url' => $this->bodyHtml],
         );
-    }
-
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, Attachment>
-     */
-    public function attachments(): array
-    {
-        return [];
     }
 }

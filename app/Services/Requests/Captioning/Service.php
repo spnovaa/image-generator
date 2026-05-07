@@ -2,47 +2,54 @@
 
 namespace App\Services\Requests\Captioning;
 
-use App\Enums\Requests\Status;
+use App\Data\PipelinePayload;
+use App\Enums\RequestStatus;
 use App\Models\RequestHistory;
-use App\Services\Requests\Captioning\Pipes\DownloadImage;
+use App\Services\Requests\Captioning\Pipes\DownloadOriginalImage;
 use App\Services\Requests\Captioning\Pipes\GenerateCaption;
-use App\Services\Requests\Captioning\Pipes\UpdateRecord;
+use App\Services\Requests\Captioning\Pipes\PersistCaption;
 use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
-class Service
+/**
+ * Orchestrates the captioning use case as a pipeline.
+ */
+final class Service
 {
-    private array $pipes = [
-        // here comes the steps of captioning an image:
-        DownloadImage::class,
+    /**
+     * @var array<int, class-string>
+     */
+    private const PIPES = [
+        DownloadOriginalImage::class,
         GenerateCaption::class,
-        UpdateRecord::class
+        PersistCaption::class,
     ];
 
+    public function __construct(
+        private readonly Pipeline $pipeline,
+    ) {}
 
     /**
-     * @param RequestHistory $request
-     * @return int
      * @throws Throwable
      */
-    public function create(RequestHistory $request): int
+    public function handle(RequestHistory $history): RequestHistory
     {
+        $payload = new PipelinePayload(history: $history);
+
         try {
-            DB::beginTransaction();
+            return DB::transaction(function () use ($payload): RequestHistory {
+                /** @var PipelinePayload $result */
+                $result = $this->pipeline
+                    ->send($payload)
+                    ->through(self::PIPES)
+                    ->thenReturn();
 
-            app(Pipeline::class)
-                ->send($request)
-                ->through($this->pipes)
-                ->thenReturn();
-
-            DB::commit();
-            return 1;
-
-        } catch (Throwable $exception) {
-            DB::rollBack();
-            $request->update(['status' => Status::FAILURE]);
-            throw $exception;
+                return $result->history;
+            });
+        } catch (Throwable $e) {
+            $history->markAs(RequestStatus::FAILURE)->save();
+            throw $e;
         }
     }
 }

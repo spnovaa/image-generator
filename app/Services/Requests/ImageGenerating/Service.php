@@ -2,42 +2,58 @@
 
 namespace App\Services\Requests\ImageGenerating;
 
+use App\Data\PipelinePayload;
+use App\Enums\RequestStatus;
 use App\Models\RequestHistory;
+use App\Services\Requests\ImageGenerating\Pipes\AnnounceImageGenerated;
 use App\Services\Requests\ImageGenerating\Pipes\GenerateImage;
-use App\Services\Requests\ImageGenerating\Pipes\S3Upload;
-use App\Services\Requests\ImageGenerating\Pipes\SendMail;
-use App\Services\Requests\ImageGenerating\Pipes\UpdateRecord;
+use App\Services\Requests\ImageGenerating\Pipes\PersistGeneratedRecord;
+use App\Services\Requests\ImageGenerating\Pipes\UploadGeneratedImage;
 use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
-class Service
+/**
+ * Orchestrates image-generation as a pipeline. Side-effects (e-mail,
+ * webhooks, analytics) are decoupled via the {@see \App\Events\ImageGenerated}
+ * domain event dispatched in {@see AnnounceImageGenerated}.
+ */
+final class Service
 {
-    private array $pipes = [
-        // here comes the steps of generating an image:
+    /**
+     * @var array<int, class-string>
+     */
+    private const PIPES = [
         GenerateImage::class,
-        S3Upload::class,
-        UpdateRecord::class,
-        SendMail::class
+        UploadGeneratedImage::class,
+        PersistGeneratedRecord::class,
+        AnnounceImageGenerated::class,
     ];
 
+    public function __construct(
+        private readonly Pipeline $pipeline,
+    ) {}
 
-    public function generate(RequestHistory $request): int
+    /**
+     * @throws Throwable
+     */
+    public function handle(RequestHistory $history): RequestHistory
     {
+        $payload = new PipelinePayload(history: $history);
+
         try {
-            DB::beginTransaction();
+            return DB::transaction(function () use ($payload): RequestHistory {
+                /** @var PipelinePayload $result */
+                $result = $this->pipeline
+                    ->send($payload)
+                    ->through(self::PIPES)
+                    ->thenReturn();
 
-            app(Pipeline::class)
-                ->send($request)
-                ->through($this->pipes)
-                ->thenReturn();
-
-            DB::commit();
-            return 1;
-
-        } catch (Throwable $exception) {
-            DB::rollBack();
-            throw $exception;
+                return $result->history;
+            });
+        } catch (Throwable $e) {
+            $history->markAs(RequestStatus::FAILURE)->save();
+            throw $e;
         }
     }
 }

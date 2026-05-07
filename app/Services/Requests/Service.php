@@ -2,61 +2,51 @@
 
 namespace App\Services\Requests;
 
+use App\Contracts\RequestHistoryRepository;
+use App\Data\CreateRequestData;
 use App\Exceptions\GeneralDatabaseException;
 use App\Exceptions\RabbitMQException;
 use App\Models\RequestHistory;
 use App\Services\Requests\Create\Service as CreateService;
-use App\Services\Requests\Update\Service as UpdateService;
-use App\Services\Requests\Read\Service as ReadService;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-readonly class Service
+/**
+ * Application-service facade for the "conversion request" use cases.
+ *
+ * Thin coordinator: delegates writes to {@see CreateService} (which runs
+ * a pipeline) and reads to the {@see RequestHistoryRepository}. The
+ * legacy Read/Update sub-services are gone — they were one-line
+ * delegators that added no value.
+ */
+final readonly class Service
 {
     public function __construct(
-        private CreateService $cs,
-        private ReadService   $rs,
-        private UpdateService $us
-    )
-    {
-    }
+        private CreateService            $create,
+        private RequestHistoryRepository $repository,
+    ) {}
 
     /**
-     * @param RequestHistory $history
-     * @return int
      * @throws GeneralDatabaseException
      * @throws RabbitMQException
      */
-    public function create(RequestHistory $history): int
+    public function create(CreateRequestData $data): RequestHistory
     {
-        return $this->cs->create($history);
+        return $this->create->handle($data);
     }
 
     /**
-     * @param int $id
-     * @return RequestHistory|null
      * @throws GeneralDatabaseException
      */
     public function show(int $id): ?RequestHistory
     {
-        return $this->rs->show($id);
+        return $this->repository->find($id);
     }
 
     /**
-     * @return Collection
      * @throws GeneralDatabaseException
      */
-    public function index(): Collection
+    public function paginate(int $perPage = 15): LengthAwarePaginator
     {
-        return $this->rs->index();
-    }
-
-    /**
-     * @param RequestHistory $history
-     * @return RequestHistory
-     * @throws GeneralDatabaseException
-     */
-    public function update(RequestHistory $history): RequestHistory
-    {
-        return $this->us->update($history);
+        return $this->repository->paginate($perPage);
     }
 }

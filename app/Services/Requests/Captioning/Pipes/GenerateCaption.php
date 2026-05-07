@@ -2,35 +2,30 @@
 
 namespace App\Services\Requests\Captioning\Pipes;
 
-use App\Enums\Requests\Status;
+use App\Contracts\ImageCaptioner;
+use App\Data\PipelinePayload;
+use App\Enums\RequestStatus;
 use App\Exceptions\CaptionGeneratorException;
-use App\Pipe;
-use App\Services\CaptionGenerator\Service;
 use Closure;
-use Illuminate\Http\Client\ConnectionException;
 
-class GenerateCaption implements Pipe
+final readonly class GenerateCaption
 {
     public function __construct(
-        private Service $service
-    )
-    {
-    }
+        private ImageCaptioner $captioner,
+    ) {}
 
     /**
-     * @param $content
-     * @param Closure $next
-     * @return mixed
      * @throws CaptionGeneratorException
-     * @throws ConnectionException
      */
-    public function handle($content, Closure $next)
+    public function handle(PipelinePayload $payload, Closure $next): mixed
     {
-        $content->fill([
-            'caption' => $this->service->generate($content['img']),
-            'status' => Status::READY
-        ]);
+        $caption = $this->captioner->caption($payload->imageBytes ?? '');
 
-        return $next($content);
+        $payload->caption          = $caption;
+        $payload->history->caption = $caption;
+        $payload->history->markAs(RequestStatus::READY);
+        $payload->imageBytes       = null;
+
+        return $next($payload);
     }
 }

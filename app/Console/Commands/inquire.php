@@ -2,34 +2,39 @@
 
 namespace App\Console\Commands;
 
-use App\Repositories\Requests\Repo;
-use App\Services\Requests\ImageGenerating\Service;
+use App\Contracts\RequestHistoryRepository;
+use App\Services\Requests\ImageGenerating\Service as ImageGeneratingService;
 use Illuminate\Console\Command;
+use Throwable;
 
-class inquire extends Command
+/**
+ * Polls the database for {@see \App\Enums\RequestStatus::READY} records
+ * and runs the image-generation pipeline for each.
+ *
+ * Scheduled every minute — see routes/console.php.
+ */
+final class Inquire extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'app:inquire';
+    protected $signature   = 'app:inquire';
+    protected $description = 'Generate images for all ready conversion requests.';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Command description';
+    public function handle(
+        RequestHistoryRepository $repository,
+        ImageGeneratingService $service,
+    ): int {
+        $records = $repository->ready();
 
-    /**
-     * Execute the console command.
-     */
-    public function handle()
-    {
-        $list = app(Repo::class)->getReadyRecords();
-        foreach ($list as $item) {
-            app(Service::class)->generate($item);
+        $this->info("Processing {$records->count()} ready record(s).");
+
+        foreach ($records as $record) {
+            try {
+                $service->handle($record);
+                $this->line("  ✓ #{$record->id} done");
+            } catch (Throwable $e) {
+                $this->error("  ✗ #{$record->id} failed: {$e->getMessage()}");
+            }
         }
+
+        return self::SUCCESS;
     }
 }

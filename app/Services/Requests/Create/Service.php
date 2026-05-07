@@ -2,60 +2,62 @@
 
 namespace App\Services\Requests\Create;
 
-use App\Enums\Requests\Status;
+use App\Data\CreateRequestData;
+use App\Data\PipelinePayload;
+use App\Enums\RequestStatus;
 use App\Exceptions\GeneralDatabaseException;
 use App\Exceptions\RabbitMQException;
 use App\Models\RequestHistory;
-use App\Services\Requests\Create\Pipes\AddToCaptionGenerationQueue;
-use App\Services\Requests\Create\Pipes\InsertModel;
-use App\Services\Requests\Create\Pipes\S3Upload;
-use Exception;
+use App\Services\Requests\Create\Pipes\DispatchCaptioningJob;
+use App\Services\Requests\Create\Pipes\PersistRecord;
+use App\Services\Requests\Create\Pipes\UploadOriginalImage;
 use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
-class Service
+/**
+ * Orchestrates the "create conversion request" use case as a pipeline.
+ *
+ * Pattern: Pipeline (a.k.a. Chain of Responsibility, the Laravel flavour).
+ *  Each step is a single-responsibility class, easy to reorder or replace.
+ */
+final class Service
 {
-    private array $pipes = [
-        // here comes the steps of creating a request model:
-        InsertModel::class,
-        S3Upload::class,
-        AddToCaptionGenerationQueue::class
+    /**
+     * @var array<int, class-string>
+     */
+    private const PIPES = [
+        PersistRecord::class,
+        UploadOriginalImage::class,
+        DispatchCaptioningJob::class,
     ];
 
-    /**
-     * @param RequestHistory $request
-     * @return int
-     * @throws RabbitMQException
-     * @throws GeneralDatabaseException
-     * @throws Exception
-     */
-    public function create(RequestHistory $request): int
-    {
-        try {
-            DB::beginTransaction();
+    public function __construct(
+        private readonly Pipeline $pipeline,
+    ) {}
 
-            app(Pipeline::class)
-                ->send($request)
-                ->through($this->pipes)
+    /**
+     * @throws GeneralDatabaseException
+     * @throws RabbitMQException
+     * @throws Throwable
+     */
+    public function handle(CreateRequestData $data): RequestHistory
+    {
+        $history = new RequestHistory([
+            'email'  => $data->email,
+            'status' => RequestStatus::PENDING->value,
+        ]);
+
+        $payload = new PipelinePayload(history: $history, upload: $data->image);
+
+        return DB::transaction(function () use ($payload): RequestHistory {
+            /** @var PipelinePayload $result */
+            $result = $this->pipeline
+                ->send($payload)
+                ->through(self::PIPES)
                 ->thenReturn();
 
-            if ($request['id']) {
-                DB::commit();
-                return $request['id'];
-            }
-
-            DB::rollBack();
-            return -1;
-        } catch (GeneralDatabaseException $exception) {
-            DB::rollBack();
-            throw $exception;
-        } catch (RabbitMQException $exception) {
-            $request->update(['status' => Status::FAILURE]);
-            throw $exception;
-        } catch (Throwable) {
-            $request->update(['status' => Status::FAILURE]);
-            throw new Exception('Server Error!');
-        }
+            return $result->history;
+        });
     }
 }

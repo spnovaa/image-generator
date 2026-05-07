@@ -2,31 +2,26 @@
 
 namespace App\Services\Requests\ImageGenerating\Pipes;
 
+use App\Contracts\ImageGenerator;
+use App\Data\PipelinePayload;
 use App\Exceptions\ImageGeneratorException;
-use App\Pipe;
-use App\Services\ImageGenerator\Service;
 use Closure;
-use Illuminate\Http\Client\ConnectionException;
 
-class GenerateImage implements Pipe
+final readonly class GenerateImage
 {
     public function __construct(
-        private Service $service
-    )
-    {
-    }
+        private ImageGenerator $generator,
+    ) {}
 
-    /***
-     * @param $content
-     * @param Closure $next
-     * @return mixed
-     * @throws ConnectionException
+    /**
      * @throws ImageGeneratorException
      */
-    public function handle($content, Closure $next)
+    public function handle(PipelinePayload $payload, Closure $next): mixed
     {
-        $content['img'] = $this->service->generate($content['caption']);
+        $payload->imageBytes = $this->generator->generate(
+            prompt: (string) $payload->history->caption,
+        );
 
-        return $next($content);
+        return $next($payload);
     }
 }

@@ -4,23 +4,15 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
-class AppServiceProvider extends ServiceProvider
+final class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+        // Domain bindings live in DomainServiceProvider.
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::except([
-            'converts'
-        ]);
+        // Reserved for application bootstrap concerns (telemetry, gates, etc.).
     }
 }
